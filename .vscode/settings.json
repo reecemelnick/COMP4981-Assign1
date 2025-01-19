@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "inet.h": "c",
+        "errno.h": "c",
+        "signal.h": "c",
+        "serve_file.h": "c"
+    }
+}

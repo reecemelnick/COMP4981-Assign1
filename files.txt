@@ -1,1 +1,1 @@
-main src/main.c src/display.c include/display.h
+main src/main.c include/main.h src/serve_file.c include/serve_file.h src/validate.c include/validate.h
