@@ -3,6 +3,8 @@
         "inet.h": "c",
         "errno.h": "c",
         "signal.h": "c",
-        "serve_file.h": "c"
+        "serve_file.h": "c",
+        "fcntl.h": "c",
+        "socket.h": "c"
     }
 }

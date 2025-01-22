@@ -1,32 +1,22 @@
 #include "main.h"
+#include "handle_client.h"
 #include "serve_file.h"
 #include "validate.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
-#define BUFFER_SIZE 1024
 sig_atomic_t static volatile g_running = 1;                 // NOLINT
 static struct timespec ts              = {0, 100000000};    // NOLINT
-
-// #define PUBLIC_DIR "../public"
-
-void get_http_date(struct tm *result)
-{
-    time_t now = time(NULL);
-    if(localtime_r(&now, result) == NULL)
-    {
-        perror("localtime_r");
-    }
-    // (buffer, BUFFER_SIZE, "%a, %d %b %Y %H:%M:%S GMT", &);
-}
 
 void handle_sigint(int signum)
 {
@@ -38,7 +28,8 @@ void handle_sigint(int signum)
 
 int initialize_socket(void)
 {
-    const int          PORT = 8080;
+    const int PORT = 8080;
+    // const char        *IP   = "192.168.0.161";
     struct sockaddr_in host_addr;
     socklen_t          host_addrlen;
 
@@ -56,6 +47,7 @@ int initialize_socket(void)
     host_addr.sin_family      = AF_INET;
     host_addr.sin_port        = htons(PORT);
     host_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    // host_addr.sin_addr.s_addr = inet_addr(IP);
 
     if(bind(sockfd, (struct sockaddr *)&host_addr, host_addrlen) != 0)
     {
@@ -104,27 +96,8 @@ int set_socket_non_blocking(int sockfd)
 
 int accept_clients(int server_sock, struct sockaddr_in host_addr, socklen_t host_addrlen)
 {
-    const int          DATE_NUM = 1900;
-    struct sockaddr_in client_addr;
-    socklen_t          client_addrlen;
-    ssize_t            valread;
-    // ssize_t            valwrite;
-    int       sockn;
-    int       validate_result;
-    char      buffer[BUFFER_SIZE];
-    struct tm tm_result;
-    char      method[BUFFER_SIZE];
-    char      uri[BUFFER_SIZE];
-    char      version[BUFFER_SIZE];
-    // const char resp[] = "HTTP/1.0 200 OK\r\n"
-    //                     "Server: webserver-c\r\n"
-    //                     "Content-type: text/html\r\n\r\n"
-    //                     "<html>hello, world</html>\r\n";
-
-    char        filepath[BUFFER_SIZE];
-    struct stat file_stat;
-
-    client_addrlen = sizeof(client_addr);
+    pthread_t thread_id;
+    int      *new_fd;
 
     signal(SIGINT, &handle_sigint);
 
@@ -148,63 +121,17 @@ int accept_clients(int server_sock, struct sockaddr_in host_addr, socklen_t host
             break;
         }
 
-        sockn = getsockname(newsockfd, (struct sockaddr *)&client_addr, &client_addrlen);
-        if(sockn < 0)
+        new_fd = malloc(sizeof(int));
+
+        *new_fd = newsockfd;
+
+        if(pthread_create(&thread_id, NULL, handle_client, (void *)new_fd) != 0)
         {
-            perror("sockname");
+            perror("pthread_create");
             continue;
         }
 
-        valread = read(newsockfd, buffer, (size_t)BUFFER_SIZE);
-        if(valread < 0)
-        {
-            if(errno == EAGAIN || errno == EWOULDBLOCK)
-            {
-                nanosleep(&ts, NULL);
-                continue;
-            }
-            perror("read");
-            continue;
-        }
-
-        sscanf(buffer, "%15s %255s %15s", method, uri, version);
-        printf("[%s:%u] %s %s %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), method, uri, version);
-        get_http_date(&tm_result);
-
-        // <day-name>, <day> <month> <year> <hour>:<minute>:<second> GMT
-        printf("%d/%d/%d, %d:%d:%d\n", tm_result.tm_mday, tm_result.tm_mon + 1, tm_result.tm_year + DATE_NUM, tm_result.tm_hour, tm_result.tm_min, tm_result.tm_sec);
-
-        validate_result = check_http_format(version, method, uri);
-        if(validate_result == -1)
-        {
-            perror("validate result");
-            break;
-        }
-
-        if(strcmp(uri, "/") == 0)
-        {
-            snprintf(uri, sizeof(uri), "/index.html");
-        }
-
-        snprintf(filepath, sizeof(filepath), "../public%s", uri);
-
-        if(stat(filepath, &file_stat) == 0 && S_ISREG(file_stat.st_mode))
-        {
-            printf("file exists\n");
-            if(read_file(filepath, newsockfd) < 0)
-            {
-                perror("read file");
-                break;
-            }
-        }
-        else
-        {
-            printf("file does NOT exist\n");
-            printf("%s\n", filepath);
-        }
-
-        close(newsockfd);
-        printf("closing connection\n");
+        pthread_detach(thread_id);
     }
 
     printf("done in loop\n");
@@ -217,5 +144,7 @@ int main(void)
     int sockfd = initialize_socket();
 
     close(sockfd);
+
+    printf("exiting application\n");
     return 0;
 }

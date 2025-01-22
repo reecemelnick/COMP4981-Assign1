@@ -1,1 +1,1 @@
-main src/main.c include/main.h src/serve_file.c include/serve_file.h src/validate.c include/validate.h
+main src/main.c include/main.h src/serve_file.c include/serve_file.h src/validate.c include/validate.h src/handle_client.c include/handle_client.h src/get_time.c include/get_time.h
