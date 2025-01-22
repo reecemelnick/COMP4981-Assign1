@@ -19,37 +19,36 @@
 
 void *handle_client(void *arg)
 {
-    int                newsockfd;
-    struct sockaddr_in client_addr;
-    socklen_t          client_addrlen;
-    int                sockn;
-    ssize_t            valread;
-    char               buffer[BUFFER_SIZE];
-    char               method[BUFFER_SIZE];
-    char               uri[BUFFER_SIZE];
-    char               version[BUFFER_SIZE];
-    struct tm          tm_result;
-    int                validate_result;
-    char               filepath[BUFFER_SIZE];
-    int                flags;
-    int                file_status;
-    const char        *time_buffer;
-    int                content_length;
+    int                newsockfd;                // client socket file descriptor
+    struct sockaddr_in client_addr;              // socket structure for client connection
+    socklen_t          client_addrlen;           // length of client socket structure
+    int                sockn;                    // result of calling getsockname
+    ssize_t            valread;                  // number of bytes read from client socket
+    char               buffer[BUFFER_SIZE];      // buffer for reading from client
+    char               method[BUFFER_SIZE];      // string for request method
+    char               uri[BUFFER_SIZE];         // string for request resource path
+    char               version[BUFFER_SIZE];     // string for request protocol version
+    struct tm          tm_result;                // struct to represent timestamp
+    int                validate_result;          // result of validating http request format
+    char               filepath[BUFFER_SIZE];    // filepath of the requested resource
+    int                flags;                    // flags of newsock fd
+    int                file_status;              // status code of request
+    const char        *time_buffer;              // string to hold timestamp struct
 
-    newsockfd = *((int *)arg);
+    newsockfd = *((int *)arg);    // cast void pointer back to int
 
-    free(arg);
+    free(arg);    // free copy of file descriptor
 
     client_addrlen = sizeof(client_addr);
 
-    // making sure read is blocking
-    flags = fcntl(newsockfd, F_GETFL, 0);
-    flags &= ~O_NONBLOCK;
+    flags = fcntl(newsockfd, F_GETFL, 0);    // get flags of newsockfd
+    flags &= ~O_NONBLOCK;                    // making sure read is blocking
     if(fcntl(newsockfd, F_SETFL, flags) == -1)
     {
         perror("fcntl F_SETFL");
     }
 
+    // store IP and port in client socket structure
     sockn = getsockname(newsockfd, (struct sockaddr *)&client_addr, &client_addrlen);
     if(sockn < 0)
     {
@@ -66,58 +65,83 @@ void *handle_client(void *arg)
 
     printf("REQUEST\n\n");
 
-    sscanf(buffer, "%15s %255s %15s", method, uri, version);
-    printf("[%s:%u] %s %s %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), method, uri, version);
-    get_http_date(&tm_result);
+    sscanf(buffer, "%15s %255s %15s", method, uri, version);                                                               // parse request into buffer
+    printf("[%s:%u]\n %s %s %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), method, uri, version);    // prints ip in human readable form, port in host byte order, request method, uri, version
 
-    time_buffer = print_time(tm_result);
+    // get date and print to server
+    get_http_date(&tm_result);
+    time_buffer = format_time(tm_result);
 
     printf("%s\n", time_buffer);
 
     printf("\n\nRESPONSE\n\n");
 
+    // validate that version and uri are valid
     validate_result = check_http_format(version, uri);
-    if(validate_result == -1)
+    if(validate_result == 0)
     {
-        perror("validate result");
-        return NULL;
-    }
+        int *is_dir;    // result if uri is directory or not
 
-    if(verify_method(method, newsockfd) != 0)
+        // validate the method
+        if(verify_method(method, newsockfd) != 0)
+        {
+            close(newsockfd);
+            return NULL;
+        }
+
+        snprintf(filepath, sizeof(filepath), "../public%s", uri);    // safely parse file path using hardcoded root directory
+
+        is_dir = malloc(sizeof(int));
+
+        *is_dir = is_directory(filepath);    // check if directory is requested
+
+        // if directory is requested, append index.html to path by default, update filepath
+        if(*is_dir == 0)
+        {
+            strncat(uri, "/index.html", sizeof(uri) - strlen(uri) - 1);
+            snprintf(filepath, sizeof(filepath), "../public%s", uri);    // safely parse file path using hardcoded root directory
+        }
+
+        // if resource has no extention, default to html, update filepath
+        if(strchr(uri, '.') == NULL)
+        {
+            strncat(uri, ".html", sizeof(uri) - strlen(uri) - 1);
+            snprintf(filepath, sizeof(filepath), "../public%s", uri);    // safely parse file path using hardcoded root directory
+        }
+
+        file_status = check_file_status(filepath);    // get status code
+
+        free(is_dir);
+    }
+    else
     {
-        close(newsockfd);
-        return NULL;
+        file_status = validate_result;
     }
-
-    if(strcmp(uri, "/") == 0)
-    {
-        snprintf(uri, sizeof(uri), "/index.html");
-    }
-
-    if(strchr(uri, '.') == NULL)
-    {
-        strncat(uri, ".html", sizeof(uri) - strlen(uri) - 1);
-    }
-
-    snprintf(filepath, sizeof(filepath), "../public%s", uri);
-
-    file_status = check_file_status(filepath);
-
-    content_length = get_file_size(filepath);
 
     if(file_status == OK_STATUS)
     {
-        form_success_response(newsockfd, content_length);
+        int         content_length;    // length of requested resource
+        const char *content_type;      // type of requested resource
 
-        if(read_file(filepath, newsockfd, method) < 0)
+        content_length = get_file_size(filepath);       // get content length of file
+        content_type   = get_content_type(filepath);    // get content tyoe of file
+
+        form_success_response(newsockfd, content_length, content_type);
+
+        if(strcmp(method, "GET") == 0)
         {
-            perror("read file");
-            return NULL;
+            // read requested resource
+            if(read_file(filepath, newsockfd) < 0)
+            {
+                perror("read file");
+                return NULL;
+            }
         }
     }
     else
     {
-        form_get_error(file_status, newsockfd);
+        printf("STATUS: %d\n", file_status);
+        form_get_error(file_status, newsockfd, method);    // if not OK, send error response
     }
 
     close(newsockfd);

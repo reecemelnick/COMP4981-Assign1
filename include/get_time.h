@@ -2,4 +2,4 @@
 
 void get_http_date(struct tm *result);
 
-char *print_time(struct tm tm_result);
+char *format_time(struct tm tm_result);

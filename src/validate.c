@@ -25,29 +25,32 @@ int check_http_format(const char *version, const char *uri)
         return -1;
     }
 
-    // verify uri
+    printf("%s\n", uri);
+
+    // verify uri to prevent backwards traveral through directories
     if(strstr(uri, "..") != NULL)
     {
-        printf("invalid uri\n");
-        return -1;
+        return PERMISSION_DENIED;
     }
 
     return 0;
 }
 
+// check if method is valid, if not send error responce
 int verify_method(const char *method, int newsockfd)
 {
     if(strcmp(method, "GET") != 0 && strcmp(method, "HEAD") != 0)
     {
-        const char *time_buffer;
-        struct tm   tm_result;
-        char        header[HEADER_SIZE];
-        const char *invalid_method_msg;
+        const char *time_buffer; // buffer for time
+        struct tm   tm_result; // time struct 
+        char        header[HEADER_SIZE]; // buffer to store header in
+        const char *invalid_method_msg; // string for invalid method message
 
-        get_http_date(&tm_result);
+        get_http_date(&tm_result); // get current time
 
-        time_buffer = print_time(tm_result);
+        time_buffer = format_time(tm_result); // format time to human readable string
 
+        // format header for 405 not allowed
         snprintf(header,
                  sizeof(header),
                  "HTTP/1.0 405 Method Not Allowed\r\n"
@@ -66,6 +69,26 @@ int verify_method(const char *method, int newsockfd)
     return 0;
 }
 
+// check if requested resource is a directory using stat
+int is_directory(const char *filepath)
+{
+    struct stat file_stat;
+
+    if(stat(filepath, &file_stat) == -1)
+    {
+        perror("stat");
+        return -1;
+    }
+
+    if(S_ISDIR(file_stat.st_mode))
+    {
+        return 0;
+    }
+
+    return -1;
+}
+
+// check if requested resource exists and has appropriate permission
 int check_file_status(char *filepath)
 {
     struct stat file_stat;
