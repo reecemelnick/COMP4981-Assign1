@@ -15,7 +15,7 @@
 #include <time.h>
 #include <unistd.h>
 
-sig_atomic_t static volatile g_running = 1;    // NOLINT // controls accept loop
+static sig_atomic_t volatile g_running = 1;    // NOLINT // controls accept loop
 
 // sets g_running to 0 to exit infinite accept loop
 void handle_sigint(int signum)
@@ -29,7 +29,7 @@ void handle_sigint(int signum)
 // socket, bind, listen
 int initialize_socket(void)
 {
-    const int PORT = 8080;    // Port to bind to
+    const uint16_t PORT = 8080;    // Port to bind to
 
     struct sockaddr_in host_addr;       // IPv4 socket structure for server
     socklen_t          host_addrlen;    // length of the sockaddr struct
@@ -126,10 +126,11 @@ int accept_clients(int server_sock, struct sockaddr_in host_addr, socklen_t host
             break;
         }
 
-        new_fd = malloc(sizeof(int));    // create copy of file descriptor
+        new_fd = (int *)malloc(sizeof(int));    // create copy of file descriptor
         if(new_fd == NULL)
         {
             perror("malloc failed");
+            close(newsockfd);
             continue;
         }
 
@@ -139,6 +140,7 @@ int accept_clients(int server_sock, struct sockaddr_in host_addr, socklen_t host
         if(pthread_create(&thread_id, NULL, handle_client, (void *)new_fd) != 0)
         {
             perror("pthread_create");
+            close(newsockfd);
             continue;
         }
 

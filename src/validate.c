@@ -41,14 +41,14 @@ int verify_method(const char *method, int newsockfd)
 {
     if(strcmp(method, "GET") != 0 && strcmp(method, "HEAD") != 0)
     {
-        const char *time_buffer; // buffer for time
-        struct tm   tm_result; // time struct 
-        char        header[HEADER_SIZE]; // buffer to store header in
-        const char *invalid_method_msg; // string for invalid method message
+        const char *time_buffer;            // buffer for time
+        struct tm   tm_result;              // time struct
+        char        header[HEADER_SIZE];    // buffer to store header in
+        const char *invalid_method_msg;     // string for invalid method message
 
-        get_http_date(&tm_result); // get current time
+        get_http_date(&tm_result);    // get current time
 
-        time_buffer = format_time(tm_result); // format time to human readable string
+        time_buffer = format_time(tm_result);    // format time to human readable string
 
         // format header for 405 not allowed
         snprintf(header,

@@ -24,7 +24,7 @@ void get_http_date(struct tm *result)
 // formats time struct into readable http format
 char *format_time(struct tm tm_result)
 {
-    char *timestamp = malloc(TIME_BUFFER);
+    char *timestamp = (char *)malloc(TIME_BUFFER);
     if(timestamp == NULL)
     {
         perror("malloc failed");

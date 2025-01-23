@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #define BUFFER_SIZE 1024
+#define REQUEST_SIZE 512
 #define OK_STATUS 200
 
 void *handle_client(void *arg)
@@ -25,9 +26,9 @@ void *handle_client(void *arg)
     int                sockn;                    // result of calling getsockname
     ssize_t            valread;                  // number of bytes read from client socket
     char               buffer[BUFFER_SIZE];      // buffer for reading from client
-    char               method[BUFFER_SIZE];      // string for request method
-    char               uri[BUFFER_SIZE];         // string for request resource path
-    char               version[BUFFER_SIZE];     // string for request protocol version
+    char               method[REQUEST_SIZE];     // string for request method
+    char               uri[REQUEST_SIZE];        // string for request resource path
+    char               version[REQUEST_SIZE];    // string for request protocol version
     struct tm          tm_result;                // struct to represent timestamp
     int                validate_result;          // result of validating http request format
     char               filepath[BUFFER_SIZE];    // filepath of the requested resource
@@ -53,6 +54,7 @@ void *handle_client(void *arg)
     if(sockn < 0)
     {
         perror("sockname");
+        close(newsockfd);
         return NULL;
     }
 
@@ -60,6 +62,7 @@ void *handle_client(void *arg)
     if(valread < 0)
     {
         perror("read");
+        close(newsockfd);
         return NULL;
     }
 
@@ -91,7 +94,12 @@ void *handle_client(void *arg)
 
         snprintf(filepath, sizeof(filepath), "../public%s", uri);    // safely parse file path using hardcoded root directory
 
-        is_dir = malloc(sizeof(int));
+        is_dir = (int *)malloc(sizeof(int));
+        if(is_dir == NULL)
+        {
+            perror("malloc fail");
+            return NULL;
+        }
 
         *is_dir = is_directory(filepath);    // check if directory is requested
 
@@ -134,6 +142,7 @@ void *handle_client(void *arg)
             if(read_file(filepath, newsockfd) < 0)
             {
                 perror("read file");
+                close(newsockfd);
                 return NULL;
             }
         }
