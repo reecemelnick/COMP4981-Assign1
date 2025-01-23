@@ -21,7 +21,7 @@
 void *handle_client(void *arg)
 {
     int                newsockfd;                // client socket file descriptor
-    struct sockaddr_in client_addr;              // socket structure for client connection
+    struct sockaddr_in client_addr = {0};        // socket structure for client connection
     socklen_t          client_addrlen;           // length of client socket structure
     int                sockn;                    // result of calling getsockname
     ssize_t            valread;                  // number of bytes read from client socket
@@ -34,7 +34,7 @@ void *handle_client(void *arg)
     char               filepath[BUFFER_SIZE];    // filepath of the requested resource
     int                flags;                    // flags of newsock fd
     int                file_status;              // status code of request
-    const char        *time_buffer;              // string to hold timestamp struct
+    char              *time_buffer;              // string to hold timestamp struct
 
     newsockfd = *((int *)arg);    // cast void pointer back to int
 
@@ -71,11 +71,16 @@ void *handle_client(void *arg)
     sscanf(buffer, "%15s %255s %15s", method, uri, version);                                                               // parse request into buffer
     printf("[%s:%u]\n %s %s %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), method, uri, version);    // prints ip in human readable form, port in host byte order, request method, uri, version
 
+
+    // TODO: is this block needed? Causing memory leak if rapidly sending requests
     // get date and print to server
     get_http_date(&tm_result);
     time_buffer = format_time(tm_result);
 
     printf("%s\n", time_buffer);
+
+    free(time_buffer);
+    // TODO: ^^^
 
     printf("\n\nRESPONSE\n\n");
 

@@ -117,7 +117,7 @@ int accept_clients(int server_sock, struct sockaddr_in host_addr, socklen_t host
 
         if(newsockfd < 0)
         {
-            if(errno == EAGAIN || errno == EWOULDBLOCK)
+            if(errno == EAGAIN)
             {
                 nanosleep(&ts, NULL);    // timeout between failed accepts
                 continue;

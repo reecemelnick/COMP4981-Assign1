@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -126,9 +127,9 @@ const char *get_content_type(const char *filename)
 
 void form_get_error(int status_code, int newsockfd, const char *method)
 {
-    const char *time_buffer;            // buffer to store readable time
-    struct tm   tm_result;              // time structure
-    char        header[HEADER_SIZE];    // buffer to hold contents of response
+    char     *time_buffer;            // buffer to store readable time
+    struct tm tm_result;              // time structure
+    char      header[HEADER_SIZE];    // buffer to hold contents of response
 
     get_http_date(&tm_result);    // get current time
 
@@ -179,4 +180,5 @@ void form_get_error(int status_code, int newsockfd, const char *method)
     }
 
     printf("%s\n", header);
+    free(time_buffer);
 }
