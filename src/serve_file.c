@@ -44,9 +44,9 @@ int read_file(const char *filepath, int client_socket)
 
 void form_success_response(int newsockfd, int content_length, const char *content_type)
 {
-    const char *time_buffer;            // buffer to store readable time
-    struct tm   tm_result;              // time structure
-    char        header[HEADER_SIZE];    // buffer to hold contents of response
+    char     *time_buffer;            // buffer to store readable time
+    struct tm tm_result;              // time structure
+    char      header[HEADER_SIZE];    // buffer to hold contents of response
 
     get_http_date(&tm_result);    // get current time
 
@@ -68,6 +68,8 @@ void form_success_response(int newsockfd, int content_length, const char *conten
     write(newsockfd, header, strlen(header));    // send response to client
 
     printf("%s\n", header);
+
+    free(time_buffer);
 }
 
 // returns content length of file

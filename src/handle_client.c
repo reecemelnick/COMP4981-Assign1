@@ -29,12 +29,12 @@ void *handle_client(void *arg)
     char               method[REQUEST_SIZE];     // string for request method
     char               uri[REQUEST_SIZE];        // string for request resource path
     char               version[REQUEST_SIZE];    // string for request protocol version
-    struct tm          tm_result;                // struct to represent timestamp
-    int                validate_result;          // result of validating http request format
-    char               filepath[BUFFER_SIZE];    // filepath of the requested resource
-    int                flags;                    // flags of newsock fd
-    int                file_status;              // status code of request
-    char              *time_buffer;              // string to hold timestamp struct
+    // struct tm          tm_result;                // struct to represent timestamp
+    int  validate_result;          // result of validating http request format
+    char filepath[BUFFER_SIZE];    // filepath of the requested resource
+    int  flags;                    // flags of newsock fd
+    int  file_status;              // status code of request
+    // char              *time_buffer;              // string to hold timestamp struct
 
     newsockfd = *((int *)arg);    // cast void pointer back to int
 
@@ -71,15 +71,14 @@ void *handle_client(void *arg)
     sscanf(buffer, "%15s %255s %15s", method, uri, version);                                                               // parse request into buffer
     printf("[%s:%u]\n %s %s %s\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), method, uri, version);    // prints ip in human readable form, port in host byte order, request method, uri, version
 
-
     // TODO: is this block needed? Causing memory leak if rapidly sending requests
     // get date and print to server
-    get_http_date(&tm_result);
-    time_buffer = format_time(tm_result);
+    // get_http_date(&tm_result);
+    // time_buffer = format_time(tm_result);
 
-    printf("%s\n", time_buffer);
+    // printf("%s\n", time_buffer);
 
-    free(time_buffer);
+    // free(time_buffer);
     // TODO: ^^^
 
     printf("\n\nRESPONSE\n\n");
