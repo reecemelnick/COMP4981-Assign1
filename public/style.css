@@ -1,0 +1,40 @@
+#buttons_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10em, 10em));
+    grid-gap: 5%;
+    padding: 3em;
+}
+
+.button_container {
+    display: flex;
+    flex-direction: column;  /* Stack elements vertically */
+    justify-content: center;
+    align-items: center;
+    border-style: solid;
+}
+
+.button_div {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-style: solid;
+}
+
+.button_text {
+    display: flex;
+    justify-content: center; /* Center content horizontally inside .button_text */
+    align-items: center;
+    /* flex-direction: column;  */
+    font-size: 50px;
+    text-align: center;
+}
+
+#test {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 400px;
+    left: 400px;
+}

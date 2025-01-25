@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -41,7 +42,7 @@ int verify_method(const char *method, int newsockfd)
 {
     if(strcmp(method, "GET") != 0 && strcmp(method, "HEAD") != 0)
     {
-        const char *time_buffer;            // buffer for time
+        char       *time_buffer;            // buffer for time
         struct tm   tm_result;              // time struct
         char        header[HEADER_SIZE];    // buffer to store header in
         const char *invalid_method_msg;     // string for invalid method message
@@ -63,6 +64,7 @@ int verify_method(const char *method, int newsockfd)
         write(newsockfd, header, strlen(header));
         write(newsockfd, invalid_method_msg, strlen(invalid_method_msg));
         printf("%s\n", header);
+        free(time_buffer);
         return -1;
     }
 
